@@ -41,7 +41,7 @@ app.use(express.json());
 Hello(app);
 Lab5(app);
 
-UserRoutes(app, db);
+UserRoutes(app);
 CourseRoutes(app, db);
 ModulesRoutes(app, db);
 AssignmentsRoutes(app, db);
