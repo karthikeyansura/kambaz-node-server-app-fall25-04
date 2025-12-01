@@ -1,47 +1,81 @@
-import CoursesDao from "./dao.js";
-import EnrollmentsDao from "../Enrollments/dao.js";
+import * as coursesDao from "./dao.js";
+import * as modulesDao from "../Modules/dao.js";
+import * as assignmentsDao from "../Assignments/dao.js";
+import * as enrollmentsDao from "../Enrollments/dao.js";
 
-export default function CourseRoutes(app, db) {
-  const dao = CoursesDao(db);
-  const enrollmentsDao = EnrollmentsDao(db);
-  const createCourse = (req, res) => {
-    const currentUser = req.session["currentUser"];
-    const newCourse = dao.createCourse(req.body);
-    enrollmentsDao.enrollUserInCourse(currentUser._id, newCourse._id);
-    res.json(newCourse);
-  };
-  app.post("/api/users/current/courses", createCourse);
-
-  const findAllCourses = (req, res) => {
-    const courses = dao.findAllCourses();
-    res.send(courses);
-  };
-  const findCoursesForEnrolledUser = (req, res) => {
-    let { userId } = req.params;
-    if (userId === "current") {
-      const currentUser = req.session["currentUser"];
-      if (!currentUser) {
-        res.sendStatus(401);
-        return;
-      }
-      userId = currentUser._id;
-    }
-    const courses = dao.findCoursesForEnrolledUser(userId);
+export default function CourseRoutes(app) {
+  const findAllCourses = async (req, res) => {
+    const courses = await coursesDao.findAllCourses();
     res.json(courses);
   };
-  const deleteCourse = (req, res) => {
-    const { courseId } = req.params;
-    const status = dao.deleteCourse(courseId);
-    res.send(status);
+
+  const createCourse = async (req, res) => {
+    const course = await coursesDao.createCourse(req.body);
+    const currentUser = req.session["currentUser"];
+    if (currentUser) {
+      await enrollmentsDao.enrollUserInCourse(currentUser._id, course._id);
+    }
+    res.json(course);
   };
-  const updateCourse = (req, res) => {
+
+  const deleteCourse = async (req, res) => {
+    const { courseId } = req.params;
+    const status = await coursesDao.deleteCourse(courseId);
+    res.json(status);
+  };
+
+  const updateCourse = async (req, res) => {
     const { courseId } = req.params;
     const courseUpdates = req.body;
-    const status = dao.updateCourse(courseId, courseUpdates);
-    res.send(status);
+    const status = await coursesDao.updateCourse(courseId, courseUpdates);
+    res.json(status);
   };
-  app.put("/api/courses/:courseId", updateCourse);
-  app.delete("/api/courses/:courseId", deleteCourse);
-  app.get("/api/users/:userId/courses", findCoursesForEnrolledUser);
+
+  const findModulesForCourse = async (req, res) => {
+    const { courseId } = req.params;
+    const modules = await modulesDao.findModulesForCourse(courseId);
+    res.json(modules);
+  };
+
+  const createModuleForCourse = async (req, res) => {
+    const { courseId } = req.params;
+    const module = {
+      ...req.body,
+      course: courseId,
+    };
+    const newModule = await modulesDao.createModule(module);
+    res.json(newModule);
+  };
+
+  const findAssignmentsForCourse = async (req, res) => {
+    const { courseId } = req.params;
+    const assignments = await assignmentsDao.findAssignmentsForCourse(courseId);
+    res.json(assignments);
+  };
+
+  const createAssignmentForCourse = async (req, res) => {
+    const { courseId } = req.params;
+    const assignment = {
+      ...req.body,
+      course: courseId,
+    };
+    const newAssignment = await assignmentsDao.createAssignment(assignment);
+    res.json(newAssignment);
+  };
+
+  const findUsersForCourse = async (req, res) => {
+    const { courseId } = req.params;
+    const users = await enrollmentsDao.findUsersForCourse(courseId);
+    res.json(users);
+  };
+
   app.get("/api/courses", findAllCourses);
+  app.post("/api/courses", createCourse);
+  app.delete("/api/courses/:courseId", deleteCourse);
+  app.put("/api/courses/:courseId", updateCourse);
+  app.get("/api/courses/:courseId/modules", findModulesForCourse);
+  app.post("/api/courses/:courseId/modules", createModuleForCourse);
+  app.get("/api/courses/:courseId/assignments", findAssignmentsForCourse);
+  app.post("/api/courses/:courseId/assignments", createAssignmentForCourse);
+  app.get("/api/courses/:courseId/users", findUsersForCourse);
 }
