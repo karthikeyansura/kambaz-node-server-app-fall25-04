@@ -35,3 +35,7 @@ export function deleteEnrollment(enrollmentId) {
 export function findAllEnrollments() {
   return model.find();
 }
+
+export function deleteEnrollmentsByCourse(courseId) {
+  return model.deleteMany({ course: courseId });
+}

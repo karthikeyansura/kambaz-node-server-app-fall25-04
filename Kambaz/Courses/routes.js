@@ -20,6 +20,7 @@ export default function CourseRoutes(app) {
 
   const deleteCourse = async (req, res) => {
     const { courseId } = req.params;
+    await enrollmentsDao.deleteEnrollmentsByCourse(courseId);
     const status = await coursesDao.deleteCourse(courseId);
     res.json(status);
   };
